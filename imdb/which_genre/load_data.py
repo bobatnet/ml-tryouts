@@ -2,6 +2,7 @@ import pprint
 from functools import partial
 import subprocess
 
+import click
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.utils import to_categorical
@@ -40,12 +41,11 @@ def any_en(text):
 def data_sharded_(index, nshards):
     return tf.data.TextLineDataset(fname)\
                 .shard(nshards, index)\
-                .map(record_line)\
+                .map(record_line, num_parallel_calls=1)\
                 .skip(1)\
-                .filter(lambda x,_: any_en(x))\
                 .batch(batch_size)\
 
-nshards = 5
+nshards = 20
 data_sharded = partial(data_sharded_, nshards=nshards)
 
 data = tf.data.Dataset.from_tensor_slices(np.arange(nshards))\
@@ -65,6 +65,3 @@ def benchmark(num_epochs=2):
             # Performing a training step
             time.sleep(0.01)
     print("Execution time:", time.perf_counter() - start_time)
-
-if __name__ == '__main__':
-    benchmark(3)
