@@ -1,0 +1,2 @@
+imdb/data/*
+!imdb/data/Makefile
