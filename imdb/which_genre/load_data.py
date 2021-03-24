@@ -37,14 +37,34 @@ def any_en(text):
     common = tf.sets.intersection(words_, all_words)
     return tf.reduce_prod(tf.shape(common.indices)) > 0
 
-data = tf.data.TextLineDataset(fname)\
-    .map(record_line)\
-    .skip(1)\
-    .filter(lambda x,_: any_en(x))\
-    .batch(batch_size)\
+def data_sharded_(index, nshards):
+    return tf.data.TextLineDataset(fname)\
+                .shard(nshards, index)\
+                .map(record_line)\
+                .skip(1)\
+                .filter(lambda x,_: any_en(x))\
+                .batch(batch_size)\
+
+nshards = 5
+data_sharded = partial(data_sharded_, nshards=nshards)
+
+data = tf.data.Dataset.from_tensor_slices(np.arange(nshards))\
+            .interleave(data_sharded, num_parallel_calls=tf.data.AUTOTUNE)
 
 def view_top_batch():
     for inp, target in data.take(1):
         pprint.pprint(inp)
         pprint.pprint(target)
         break
+
+def benchmark(num_epochs=2):
+    import time
+    start_time = time.perf_counter()
+    for epoch_num in range(num_epochs):
+        for sample in zip(data, range(10)):
+            # Performing a training step
+            time.sleep(0.01)
+    print("Execution time:", time.perf_counter() - start_time)
+
+if __name__ == '__main__':
+    benchmark(3)
