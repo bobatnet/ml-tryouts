@@ -58,6 +58,7 @@ newinp2 = tf.keras.layers.Input(shape=(img_dim, img_dim, 3))
 
 tensors1, tensors2 = {input_name: newinp1}, {input_name: newinp2}
 
+final_drop_layer = 'predictions'
 attend_pos = ['conv2_block3_add', 'conv3_block4_add', 'conv4_block6_add', 'conv5_block3_add']
 attention_layers = []
 
@@ -79,6 +80,8 @@ def add_attention(inp_query, inp_key):
 for i, layer in enumerate(model.layers):
     if i == 0:
         continue
+    if layer.name == final_drop_layer:
+        break
     layer_ins = [layer.input] if not isinstance(layer.input, list) else layer.input
     layer_args_tensors_1, layer_args_tensors_2 = [], []
 
@@ -101,7 +104,9 @@ for i, layer in enumerate(model.layers):
 
         tensors1[layer.name], tensors2[layer.name] = y1a, y2a
 
-out_ = tf.keras.layers.Multiply()([tensors1[layer.name], tensors2[layer.name]])
+    last_later = layer.name
+
+out_ = tf.keras.layers.Multiply()([tensors1[last_later], tensors2[last_later]])
 out = tf.keras.layers.Dense(2)(out_)
 
 print("Output", out.shape)
